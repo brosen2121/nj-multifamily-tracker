@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NJ Multifamily Investment Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: #30363d;
+    --accent: #f0a500;
+    --accent2: #e05c2f;
+    --green: #3fb950;
+    --red: #f85149;
+    --blue: #58a6ff;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --tag-bg: #21262d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    background: radial-gradient(circle, rgba(240,165,0,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .brand { display: flex; flex-direction: column; gap: 4px; }
+  .brand-label { font-size: 10px; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; font-weight: 600; }
+  .brand-title { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--text); line-height: 1; }
+  .brand-title span { color: var(--accent); font-style: italic; }
+  .brand-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px; font-weight: 700;
+    padding: 9px 18px;
+    border-radius: 6px;
+    border: none; cursor: pointer;
+    letter-spacing: 1px; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #ffc107; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
+  .btn-danger:hover { background: var(--red); color: #fff; }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    overflow-x: auto;
+  }
+  .stat-pill {
+    padding: 14px 28px;
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 2px;
+    min-width: 140px;
+  }
+  .stat-pill:last-child { border-right: none; }
+  .stat-val { font-family: 'DM Mono', monospace; font-size: 1.4rem; font-weight: 500; color: var(--accent); }
+  .stat-key { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; }
+
+  /* FILTERS */
+  .filters {
+    padding: 16px 40px;
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .filter-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-right: 4px; }
+  .filter-btn {
+    padding: 5px 14px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--muted);
+    cursor: pointer; transition: all 0.2s;
+    font-family: 'Syne', sans-serif;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .filter-btn:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+
+  .search-input {
+    margin-left: auto;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    outline: none;
+    width: 200px;
+    transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+
+  /* MAIN TABLE */
+  main { padding: 24px 40px; }
+
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; min-width: 900px; }
+  thead { background: var(--surface); }
+  thead th {
+    padding: 12px 16px;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--muted); font-weight: 600;
+    text-align: left; border-bottom: 1px solid var(--border);
+    cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  thead th:hover { color: var(--accent); }
+  thead th.sorted { color: var(--accent); }
+  thead th .sort-arrow { margin-left: 4px; opacity: 0.5; }
+  thead th.sorted .sort-arrow { opacity: 1; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    animation: fadeRow 0.4s ease both;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(240,165,0,0.04); }
+  @keyframes fadeRow { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  td { padding: 14px 16px; font-size: 13px; vertical-align: middle; }
+  .td-addr { font-weight: 600; color: var(--text); }
+  .td-addr a { color: var(--text); text-decoration: none; }
+  .td-addr a:hover { color: var(--accent); text-decoration: underline; }
+  .td-area { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .td-price {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px; font-weight: 500;
+    color: var(--green);
+  }
+  .td-price.high { color: var(--accent); }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px; border-radius: 4px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+  .badge-area { background: var(--tag-bg); color: var(--blue); }
+  .badge-new { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+  .badge-hot { background: rgba(224,92,47,0.15); color: var(--accent2); border: 1px solid rgba(224,92,47,0.3); }
+  .badge-watch { background: rgba(88,166,255,0.15); color: var(--blue); border: 1px solid rgba(88,166,255,0.3); }
+  .badge-passed { background: var(--tag-bg); color: var(--muted); }
+
+  .stars { color: var(--accent); font-size: 12px; letter-spacing: 1px; }
+  .est-rent { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--blue); }
+  .notes-cell { font-size: 11px; color: var(--muted); max-width: 180px; }
+
+  .action-btn {
+    padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); cursor: pointer; font-size: 11px;
+    font-family: 'Syne', sans-serif; transition: all 0.15s;
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.del:hover { border-color: var(--red); color: var(--red); }
+
+  .empty-state {
+    text-align: center; padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* AI PANEL */
+  .ai-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-top: 24px;
+  }
+  .ai-panel-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 12px;
+  }
+  .ai-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+  .ai-panel-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); }
+
+  .ai-output {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; color: var(--muted);
+    line-height: 1.7; white-space: pre-wrap;
+    max-height: 300px; overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px; padding: 14px;
+    background: var(--bg);
+  }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    width: 500px; max-width: 95vw;
+    position: relative;
+  }
+  .modal h3 { font-family: 'DM Serif Display', serif; font-size: 1.3rem; margin-bottom: 20px; color: var(--text); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1/-1; }
+  .form-group label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
+  .form-group input, .form-group select, .form-group textarea {
+    padding: 8px 12px; border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg); color: var(--text);
+    font-family: 'Syne', sans-serif; font-size: 13px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+  .form-group textarea { resize: vertical; min-height: 70px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; }
+  .modal-close:hover { color: var(--text); }
+
+  /* SCORE BAR */
+  .score-bar-wrap { display: flex; align-items: center; gap: 6px; }
+  .score-bar-bg { flex: 1; height: 4px; background: var(--border); border-radius: 2px; }
+  .score-bar-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.4s; }
+  .score-num { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; min-width: 20px; }
+
+  footer { padding: 20px 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 11px; text-align: center; }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  /* API KEY BANNER */
+  .key-banner {
+    background: linear-gradient(90deg, rgba(240,165,0,0.12), rgba(240,165,0,0.04));
+    border-bottom: 1px solid rgba(240,165,0,0.3);
+    padding: 10px 40px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .key-banner.ok { background: linear-gradient(90deg, rgba(63,185,80,0.1), transparent); border-color: rgba(63,185,80,0.25); }
+  .key-banner-icon { font-size: 16px; }
+  .key-banner-text { font-size: 12px; color: var(--muted); flex: 1; }
+  .key-banner-text strong { color: var(--text); }
+  .key-input-wrap { display: flex; gap: 8px; align-items: center; }
+  .key-input {
+    padding: 6px 14px; border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg); color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    outline: none; width: 280px;
+    transition: border-color 0.2s;
+    letter-spacing: 1px;
+  }
+  .key-input:focus { border-color: var(--accent); }
+  .key-status { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .key-status.set { color: var(--green); }
+  .key-status.unset { color: var(--accent); }
+
+  /* HOSTING GUIDE MODAL */
+  .guide-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    width: 560px; max-width: 95vw;
+    position: relative;
+    max-height: 85vh; overflow-y: auto;
+  }
+  .guide-step {
+    display: flex; gap: 14px; margin-bottom: 20px;
+    padding-bottom: 20px; border-bottom: 1px solid var(--border);
+  }
+  .guide-step:last-child { border-bottom: none; margin-bottom: 0; }
+  .step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent); color: #000;
+    font-size: 12px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-body h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+  .step-body p { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .step-body a { color: var(--accent); }
+  .step-body code {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg); color: var(--blue);
+    padding: 2px 6px; border-radius: 3px; font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-label">Investment Tracker</div>
+      <div class="brand-title">NJ <span>Multifamily</span> Scout</div>
+      <div class="brand-sub">House-hack targets · Under $650K · Essex, Bergen, Passaic, Middlesex, Somerset Counties</div>
+    </div>
+    <div class="controls">
+      <button class="btn btn-outline" onclick="openModal()">+ Add Listing</button>
+      <button class="btn btn-primary" id="aiBtn" onclick="fetchAIListings()">⚡ AI Refresh Listings</button>
+      <button class="btn btn-outline" onclick="exportCSV()">↓ Export CSV</button>
+      <button class="btn btn-outline" onclick="openGuide()">🔗 Host Guide</button>
+    </div>
+  </div>
+</header>
+
+<!-- API KEY BANNER -->
+<div class="key-banner" id="keyBanner">
+  <span class="key-banner-icon">🔑</span>
+  <div class="key-banner-text"><strong>Anthropic API Key required</strong> to use AI Refresh outside of Claude.ai. Get yours free at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> — your key is saved locally in your browser only.</div>
+  <div class="key-input-wrap">
+    <input class="key-input" id="apiKeyInput" type="password" placeholder="sk-ant-api03-..." oninput="updateKeyStatus()" />
+    <button class="btn btn-primary" style="padding:6px 14px;font-size:11px" onclick="saveKey()">Save Key</button>
+    <span class="key-status unset" id="keyStatus">Not set</span>
+  </div>
+</div>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="filters">
+  <span class="filter-label">Area</span>
+  <button class="filter-btn active" onclick="setFilter('area','all',this)">All</button>
+  <button class="filter-btn" onclick="setFilter('area','Bloomfield',this)">Bloomfield</button>
+  <button class="filter-btn" onclick="setFilter('area','Clifton',this)">Clifton</button>
+  <button class="filter-btn" onclick="setFilter('area','Hackensack',this)">Hackensack</button>
+  <button class="filter-btn" onclick="setFilter('area','Bridgewater',this)">Bridgewater</button>
+  <button class="filter-btn" onclick="setFilter('area','East Brunswick',this)">E. Brunswick</button>
+  <button class="filter-btn" onclick="setFilter('area','Metuchen',this)">Metuchen</button>
+  <button class="filter-btn" onclick="setFilter('area','Fair Lawn',this)">Fair Lawn</button>
+  <button class="filter-btn" onclick="setFilter('area','Ridgefield',this)">Ridgefield</button>
+  <span class="filter-label" style="margin-left:12px">Status</span>
+  <button class="filter-btn" onclick="setFilter('status','🔥 Hot',this)">🔥 Hot</button>
+  <button class="filter-btn" onclick="setFilter('status','👀 Watch',this)">👀 Watch</button>
+  <button class="filter-btn" onclick="setFilter('status','🆕 New',this)">🆕 New</button>
+  <input class="search-input" id="searchInput" placeholder="Search address..." oninput="renderTable()">
+</div>
+
+<main>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('address')">Address <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('area')">Area <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('price')">Price <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('beds')">Beds <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('baths')">Baths <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('sqft')">Sq Ft <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('estRent')">Est. Rent/Mo <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('score')">Score <span class="sort-arrow">↕</span></th>
+          <th>Status</th>
+          <th>Notes</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="ai-panel">
+    <div class="ai-panel-header">
+      <div class="ai-dot"></div>
+      <div class="ai-panel-title">AI Market Intelligence</div>
+    </div>
+    <div class="ai-output" id="aiOutput">Click "⚡ AI Refresh Listings" to get current market analysis and new listing recommendations for your target NJ areas under $650K.</div>
+  </div>
+</main>
+
+<footer>
+  NJ Multifamily Investment Tracker · Data sourced from Zillow, Realtor.com, Homes.com · <a href="https://www.zillow.com/nj/multifamily-homes/" target="_blank">Browse Zillow</a> · For informational purposes only
+</footer>
+
+<!-- HOSTING GUIDE MODAL -->
+<div class="modal-overlay" id="guideOverlay">
+  <div class="guide-modal">
+    <button class="modal-close" onclick="closeGuide()">✕</button>
+    <h3 style="font-family:'DM Serif Display',serif;font-size:1.3rem;margin-bottom:6px">Make This a Permanent Link</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:20px">Host this file for free in ~5 minutes. Your API key travels with the file.</p>
+
+    <div class="guide-step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Get Your Anthropic API Key</h4>
+        <p>Go to <a href="https://console.anthropic.com/keys" target="_blank">console.anthropic.com/keys</a>, sign up free, and create a new key. It looks like <code>sk-ant-api03-...</code>. You get free credits to start.</p>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Download This File</h4>
+        <p>Click <strong>↓ Export CSV</strong> to save your listings, then download this HTML file. Rename it something like <code>tracker.html</code>.</p>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Option A — Netlify Drop (Easiest, 60 seconds)</h4>
+        <p>Go to <a href="https://app.netlify.com/drop" target="_blank">app.netlify.com/drop</a>, drag and drop your <code>tracker.html</code> file. You instantly get a live URL like <code>amazing-name-123.netlify.app</code>. Free forever. You can claim a custom name too.</p>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>Option B — GitHub Pages (Free, more control)</h4>
+        <p>Create a free <a href="https://github.com" target="_blank">GitHub</a> account → New repo → Upload <code>tracker.html</code> → Rename it <code>index.html</code> → Go to Settings → Pages → Deploy from main branch. Your URL: <code>yourusername.github.io/reponame</code></p>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h4>Enter Your API Key on the Live Page</h4>
+        <p>Once hosted, open your live URL, paste your API key in the <strong>🔑 key field</strong> at the top, and click Save. It's stored in your browser locally — never sent anywhere except directly to Anthropic when you hit AI Refresh. Works on any device where you enter the key.</p>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h4>Bookmark It</h4>
+        <p>Bookmark your live URL. Share it with anyone you want (they'll need their own API key to use AI Refresh, but can view and add listings freely).</p>
+      </div>
+    </div>
+
+    <div style="margin-top:4px;text-align:center">
+      <button class="btn btn-primary" onclick="closeGuide()">Got it, let's go!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD LISTING MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>Add New Listing</h3>
+    <div class="form-row">
+      <div class="form-group full">
+        <label>Address</label>
+        <input id="f-address" placeholder="123 Main St, Bloomfield, NJ" />
+      </div>
+      <div class="form-group">
+        <label>Area / Town</label>
+        <select id="f-area">
+          <option>Bloomfield</option>
+          <option>Clifton</option>
+          <option>Hackensack</option>
+          <option>Lodi</option>
+          <option>Ridgefield</option>
+          <option>Fair Lawn</option>
+          <option>East Brunswick</option>
+          <option>Bridgewater</option>
+          <option>Metuchen</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>List Price ($)</label>
+        <input id="f-price" type="number" placeholder="549000" />
+      </div>
+      <div class="form-group">
+        <label>Bedrooms</label>
+        <input id="f-beds" type="number" placeholder="4" />
+      </div>
+      <div class="form-group">
+        <label>Bathrooms</label>
+        <input id="f-baths" type="number" step="0.5" placeholder="2" />
+      </div>
+      <div class="form-group">
+        <label>Sq Ft</label>
+        <input id="f-sqft" type="number" placeholder="1800" />
+      </div>
+      <div class="form-group">
+        <label>Est. Monthly Rent ($)</label>
+        <input id="f-rent" type="number" placeholder="1800" />
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="f-status">
+          <option>🆕 New</option>
+          <option>🔥 Hot</option>
+          <option>👀 Watch</option>
+          <option>✅ Offer</option>
+          <option>❌ Passed</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Score (1-10)</label>
+        <input id="f-score" type="number" min="1" max="10" placeholder="7" />
+      </div>
+      <div class="form-group full">
+        <label>Zillow / Listing URL</label>
+        <input id="f-url" placeholder="https://zillow.com/..." />
+      </div>
+      <div class="form-group full">
+        <label>Notes</label>
+        <textarea id="f-notes" placeholder="2-family, close to train, needs kitchen update..."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="addListing()">Add Listing</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+let listings = [
+  { id:1, address:"87 Merselis Ave", area:"Clifton", price:379900, beds:2, baths:1, sqft:null, estRent:1600, score:6, status:"👀 Watch", url:"https://www.zillow.com/homedetails/87-Merselis-Ave-Clifton-NJ-07011/39715948_zpid/", notes:"2-family starter, low price entry, small units" },
+  { id:2, address:"144 Major St", area:"Clifton", price:399000, beds:2, baths:2, sqft:null, estRent:1750, score:7, status:"🔥 Hot", url:"https://www.zillow.com/homedetails/144-Major-St-Clifton-NJ-07012/39728202_zpid/", notes:"Good price, 2/2 layout, Botany Village area" },
+  { id:3, address:"112 East St (near Bridgewater)", area:"Bridgewater", price:474999, beds:2, baths:3, sqft:null, estRent:1900, score:7, status:"👀 Watch", url:"https://www.zillow.com/homedetails/112-East-St-Bound-Brook-NJ-08805/39846642_zpid/", notes:"Bound Brook border, 3 baths is a plus" },
+  { id:4, address:"198 Glenwood Ave", area:"Bloomfield", price:549000, beds:6, baths:2, sqft:2000, estRent:2200, score:8, status:"🔥 Hot", url:"https://www.zillow.com/homedetails/198-Glenwood-Ave-Bloomfield-NJ-07003/38628263_zpid/", notes:"6BR 2-family, 2000 sqft, strong rental potential" },
+  { id:5, address:"56-58 Hamilton St (Somerville)", area:"Bridgewater", price:550000, beds:4, baths:2, sqft:1800, estRent:2000, score:7, status:"👀 Watch", url:"https://www.zillow.com/homedetails/56-58-Hamilton-St-Somerville-NJ-08876/39912774_zpid/", notes:"Near Bridgewater, 4BR, 1800 sqft" },
+  { id:6, address:"106-108 W Somerset St (Raritan)", area:"Bridgewater", price:599000, beds:6, baths:4, sqft:null, estRent:2400, score:8, status:"🔥 Hot", url:"https://www.zillow.com/homedetails/106-108-W-Somerset-St-Raritan-NJ-08869/39911111_zpid/", notes:"6BR 4BA duplex, strong cash flow potential" },
+  { id:7, address:"51 Gladys Ave (Manville)", area:"Bridgewater", price:624900, beds:4, baths:2, sqft:null, estRent:2100, score:6, status:"👀 Watch", url:"https://www.zillow.com/homedetails/51-Gladys-Ave-Manville-NJ-08835/39897404_zpid/", notes:"Near Bridgewater limit, check flood zone" },
+  { id:8, address:"35 Hickory St", area:"Bloomfield", price:638800, beds:3, baths:2.1, sqft:null, estRent:2100, score:7, status:"🆕 New", url:"https://www.zillow.com/homedetails/35-Hickory-St-Bloomfield-NJ-07003/38628697_zpid/", notes:"Coming soon, 3BR 2.1BA" },
+  { id:9, address:"70 Valentine Rd", area:"Bloomfield", price:640000, beds:3, baths:2, sqft:null, estRent:2150, score:7, status:"👀 Watch", url:"https://www.zillow.com/homedetails/70-Valentine-Rd-Bloomfield-NJ-07003/38632223_zpid/", notes:"3BR 2BA, near Bloomfield center" },
+  { id:10, address:"418 Taylor Ave", area:"Hackensack", price:650000, beds:4, baths:3, sqft:null, estRent:2300, score:8, status:"🔥 Hot", url:"https://www.zillow.com/homedetails/418-Taylor-Ave-Hackensack-NJ-07601/52898715_zpid/", notes:"4BR 3BA Hackensack, strong Bergen Co rental market" },
+  { id:11, address:"46 Maple St", area:"Bloomfield", price:650000, beds:3, baths:2, sqft:1900, estRent:2200, score:8, status:"🔥 Hot", url:"https://www.zillow.com/homedetails/46-Maple-St-Bloomfield-NJ-07003/38630978_zpid/", notes:"3BR 2BA, 1900 sqft, solid Bloomfield location" },
+  { id:12, address:"82 Randolph Ave", area:"Clifton", price:650000, beds:5, baths:2, sqft:null, estRent:2200, score:7, status:"👀 Watch", url:"https://www.realtor.com/realestateandhomes-search/Clifton_NJ/type-multi-family-home", notes:"5BR 2BA Clifton, Lakeview area" },
+];
+
+let nextId = 13;
+let sortKey = 'price';
+let sortAsc = true;
+let filterArea = 'all';
+let filterStatus = 'all';
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function renderTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let data = listings.filter(l => {
+    const areaMatch = filterArea === 'all' || l.area.includes(filterArea);
+    const statusMatch = filterStatus === 'all' || l.status === filterStatus;
+    const searchMatch = !q || l.address.toLowerCase().includes(q) || l.area.toLowerCase().includes(q) || (l.notes||'').toLowerCase().includes(q);
+    return areaMatch && statusMatch && searchMatch;
+  });
+
+  data.sort((a,b) => {
+    let va = a[sortKey] ?? 0, vb = b[sortKey] ?? 0;
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    return sortAsc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  });
+
+  const tbody = document.getElementById('tableBody');
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="icon">🏘️</div><p>No listings match your filters.</p></div></td></tr>`;
+    renderStats();
+    return;
+  }
+
+  tbody.innerHTML = data.map((l,i) => {
+    const priceColor = l.price >= 600000 ? 'high' : '';
+    const scoreColor = l.score >= 8 ? 'var(--green)' : l.score >= 6 ? 'var(--accent)' : 'var(--muted)';
+    const statusBadge = l.status === '🔥 Hot' ? 'badge-hot' : l.status === '👀 Watch' ? 'badge-watch' : l.status === '🆕 New' ? 'badge-new' : 'badge-passed';
+    const sqftStr = l.sqft ? l.sqft.toLocaleString() + ' sf' : '—';
+    const rentStr = l.estRent ? '$' + l.estRent.toLocaleString() : '—';
+    const scoreWidth = (l.score / 10) * 100;
+    return `<tr style="animation-delay:${i*0.04}s">
+      <td>
+        <div class="td-addr">${l.url ? `<a href="${l.url}" target="_blank">${l.address}</a>` : l.address}</div>
+      </td>
+      <td><span class="badge badge-area">${l.area}</span></td>
+      <td><div class="td-price ${priceColor}">$${l.price.toLocaleString()}</div></td>
+      <td style="text-align:center">${l.beds || '—'}</td>
+      <td style="text-align:center">${l.baths || '—'}</td>
+      <td>${sqftStr}</td>
+      <td><span class="est-rent">${rentStr}</span></td>
+      <td>
+        <div class="score-bar-wrap">
+          <div class="score-bar-bg"><div class="score-bar-fill" style="width:${scoreWidth}%;background:${scoreColor}"></div></div>
+          <span class="score-num">${l.score}/10</span>
+        </div>
+      </td>
+      <td><span class="badge ${statusBadge}">${l.status}</span></td>
+      <td><div class="notes-cell">${l.notes || '—'}</div></td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="action-btn" onclick="editStatus(${l.id})">Edit</button>
+          <button class="action-btn del" onclick="removeListing(${l.id})">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  renderStats();
+}
+
+function renderStats() {
+  const data = listings;
+  const avg = data.length ? Math.round(data.reduce((a,b)=>a+b.price,0)/data.length) : 0;
+  const hot = data.filter(l=>l.status==='🔥 Hot').length;
+  const avgScore = data.length ? (data.reduce((a,b)=>a+b.score,0)/data.length).toFixed(1) : 0;
+  const avgRent = data.length ? Math.round(data.filter(l=>l.estRent).reduce((a,b)=>a+b.estRent,0)/data.filter(l=>l.estRent).length) : 0;
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-pill"><div class="stat-val">${data.length}</div><div class="stat-key">Total Listings</div></div>
+    <div class="stat-pill"><div class="stat-val">$${Math.round(avg/1000)}K</div><div class="stat-key">Avg. Price</div></div>
+    <div class="stat-pill"><div class="stat-val">${hot}</div><div class="stat-key">🔥 Hot Picks</div></div>
+    <div class="stat-pill"><div class="stat-val">${avgScore}</div><div class="stat-key">Avg. Score</div></div>
+    <div class="stat-pill"><div class="stat-val">$${avgRent.toLocaleString()}</div><div class="stat-key">Avg. Est. Rent</div></div>
+    <div class="stat-pill"><div class="stat-val">${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div><div class="stat-key">Last Updated</div></div>
+  `;
+}
+
+// ─── SORT / FILTER ───────────────────────────────────────────────────────────
+function sortBy(key) {
+  if (sortKey === key) sortAsc = !sortAsc;
+  else { sortKey = key; sortAsc = true; }
+  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
+  event.currentTarget.classList.add('sorted');
+  renderTable();
+}
+
+function setFilter(type, val, btn) {
+  if (type === 'area') filterArea = val;
+  else filterStatus = filterStatus === val ? 'all' : val;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    if (b.onclick.toString().includes(`'${type}'`)) b.classList.remove('active');
+  });
+  if (filterStatus === val && type === 'status' && val === filterStatus) btn.classList.remove('active');
+  else btn.classList.toggle('active', type === 'area' ? true : filterStatus === val);
+  if (type === 'area') { document.querySelectorAll('.filter-btn').forEach(b => { if(b.onclick.toString().includes("'area'")) b.classList.remove('active'); }); btn.classList.add('active'); }
+  renderTable();
+}
+
+// ─── MODAL ───────────────────────────────────────────────────────────────────
+function openModal() { document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+function addListing() {
+  const l = {
+    id: nextId++,
+    address: document.getElementById('f-address').value || 'Unknown',
+    area: document.getElementById('f-area').value,
+    price: parseInt(document.getElementById('f-price').value) || 0,
+    beds: parseFloat(document.getElementById('f-beds').value) || null,
+    baths: parseFloat(document.getElementById('f-baths').value) || null,
+    sqft: parseInt(document.getElementById('f-sqft').value) || null,
+    estRent: parseInt(document.getElementById('f-rent').value) || null,
+    score: parseInt(document.getElementById('f-score').value) || 5,
+    status: document.getElementById('f-status').value,
+    url: document.getElementById('f-url').value || '',
+    notes: document.getElementById('f-notes').value || '',
+  };
+  listings.unshift(l);
+  closeModal();
+  renderTable();
+  ['f-address','f-price','f-beds','f-baths','f-sqft','f-rent','f-score','f-url','f-notes'].forEach(id => document.getElementById(id).value = '');
+}
+
+function editStatus(id) {
+  const l = listings.find(x=>x.id===id);
+  if (!l) return;
+  const statuses = ['🆕 New','🔥 Hot','👀 Watch','✅ Offer','❌ Passed'];
+  const cur = statuses.indexOf(l.status);
+  l.status = statuses[(cur+1) % statuses.length];
+  renderTable();
+}
+
+function removeListing(id) {
+  if (confirm('Remove this listing?')) {
+    listings = listings.filter(l=>l.id!==id);
+    renderTable();
+  }
+}
+
+// ─── EXPORT CSV ──────────────────────────────────────────────────────────────
+function exportCSV() {
+  const headers = ['Address','Area','Price','Beds','Baths','SqFt','Est Rent/Mo','Score','Status','Notes','URL'];
+  const rows = listings.map(l => [
+    l.address, l.area, l.price, l.beds||'', l.baths||'', l.sqft||'', l.estRent||'',
+    l.score, l.status, (l.notes||'').replace(/,/g,' '), l.url
+  ]);
+  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `NJ_Multifamily_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ─── API KEY MANAGEMENT ───────────────────────────────────────────────────────
+function saveKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val) return;
+  localStorage.setItem('nj_tracker_apikey', val);
+  updateKeyStatus();
+}
+
+function updateKeyStatus() {
+  const stored = localStorage.getItem('nj_tracker_apikey');
+  const inputVal = document.getElementById('apiKeyInput').value.trim();
+  const active = stored || inputVal;
+  const banner = document.getElementById('keyBanner');
+  const status = document.getElementById('keyStatus');
+  if (active) {
+    banner.classList.add('ok');
+    status.className = 'key-status set';
+    status.textContent = '✓ Key set';
+    document.getElementById('apiKeyInput').placeholder = '••••••••••••••••••••';
+  } else {
+    banner.classList.remove('ok');
+    status.className = 'key-status unset';
+    status.textContent = 'Not set';
+  }
+}
+
+function getApiKey() {
+  return localStorage.getItem('nj_tracker_apikey') || document.getElementById('apiKeyInput').value.trim();
+}
+
+function openGuide() { document.getElementById('guideOverlay').classList.add('open'); }
+function closeGuide() { document.getElementById('guideOverlay').classList.remove('open'); }
+
+// ─── AI REFRESH ──────────────────────────────────────────────────────────────
+async function fetchAIListings() {
+  const apiKey = getApiKey();
+  const btn = document.getElementById('aiBtn');
+  const out = document.getElementById('aiOutput');
+
+  if (!apiKey) {
+    out.textContent = '⚠️ No API key found. Enter your Anthropic API key in the field at the top of the page, then try again.\n\nGet a free key at: https://console.anthropic.com/keys';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Analyzing...';
+  out.innerHTML = '<span class="spinner"></span> Searching NJ multifamily market data...';
+
+  const existingAddresses = listings.map(l => l.address).join(', ');
+
+  const prompt = `You are a real estate investment analyst specializing in NJ multifamily house-hack properties. 
+
+The user is looking for 2-4 family homes in these specific NJ areas: Bloomfield, Hackensack/Lodi, Ridgefield, Fair Lawn, Clifton, East Brunswick (Middlesex), Bridgewater Township, Metuchen (Middlesex). 
+
+Strategy: Buy under $650,000, live in one unit, rent out the other(s) to offset mortgage. They are not in flood zones and want solid rental demand.
+
+They already have these listings tracked: ${existingAddresses}
+
+Please provide:
+1. MARKET SNAPSHOT (2-3 sentences on current NJ multifamily market conditions as of early 2026)
+
+2. TOP 3-5 NEW SPECIFIC LISTINGS to add — format each as:
+   📍 [Full Address] | [Town] | $[Price] | [Beds]BR/[Baths]BA | Est. Rent: $[X]/mo | Score: [1-10]/10
+   → Why it's worth buying: [1-2 sentences on investment thesis]
+
+3. AREAS TO PRIORITIZE RIGHT NOW and why (1-2 sentences each)
+
+4. HOUSE-HACK TIP of the week specific to NJ
+
+Keep it sharp, specific, and actionable. Focus on cash flow math — if rent covers 60%+ of PITI on a 20% down loan, it's worth watching.`;
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    const data = await resp.json();
+    if (data.error) {
+      out.textContent = `⚠️ API Error: ${data.error.message}\n\nCheck your API key is correct and has credits available.`;
+      return;
+    }
+    const text = data.content?.map(b => b.text || '').join('') || 'No response received.';
+    out.textContent = text;
+    autoParseListings(text);
+  } catch(e) {
+    out.textContent = '⚠️ Network error: ' + e.message + '\n\nIf you see a CORS error, make sure you are accessing this file from a hosted URL (not opening the file directly from your desktop).';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⚡ AI Refresh Listings';
+  }
+}
+
+function autoParseListings(text) {
+  const lines = text.split('\n');
+  let added = 0;
+  lines.forEach(line => {
+    // Look for lines with the 📍 pattern
+    if (line.startsWith('📍')) {
+      try {
+        const addrMatch = line.match(/📍\s*([^|]+)\|/);
+        const areaMatch = line.match(/\|\s*([^|$]+)\|/);
+        const priceMatch = line.match(/\$([0-9,]+)/);
+        const bedsMatch = line.match(/(\d+)BR/);
+        const bathsMatch = line.match(/(\d+(?:\.\d+)?)BA/);
+        const rentMatch = line.match(/Est\. Rent:\s*\$([0-9,]+)/i);
+
+        if (addrMatch && priceMatch) {
+          const price = parseInt(priceMatch[1].replace(/,/g,''));
+          if (price > 0 && price <= 650000) {
+            const addr = addrMatch[1].trim();
+            if (!listings.find(l => l.address.toLowerCase() === addr.toLowerCase())) {
+              listings.unshift({
+                id: nextId++,
+                address: addr,
+                area: areaMatch ? areaMatch[1].trim() : 'NJ',
+                price,
+                beds: bedsMatch ? parseInt(bedsMatch[1]) : null,
+                baths: bathsMatch ? parseFloat(bathsMatch[1]) : null,
+                sqft: null,
+                estRent: rentMatch ? parseInt(rentMatch[1].replace(/,/g,'')) : null,
+                score: 7,
+                status: '🆕 New',
+                url: '',
+                notes: 'Added via AI refresh'
+              });
+              added++;
+            }
+          }
+        }
+      } catch(e) {}
+    }
+  });
+  if (added > 0) {
+    setTimeout(renderTable, 300);
+  }
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+renderTable();
+updateKeyStatus();
+// Pre-fill key input if already saved
+const _saved = localStorage.getItem('nj_tracker_apikey');
+if (_saved) document.getElementById('apiKeyInput').value = _saved;
+</script>
+</body>
+</html>
